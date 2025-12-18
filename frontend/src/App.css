@@ -487,3 +487,29 @@ body {
   color: #64748b;
   text-transform: uppercase;
 }
+
+/* --- SIDEBAR MASCOT (VIDEO) --- */
+.mascot-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px; /* Space between video and Drag & Drop */
+  padding: 10px;
+}
+
+.mascot-video {
+  width: 140px; /* Larger size for the sidebar */
+  height: 140px;
+  border-radius: 50%; /* Circle shape */
+  object-fit: cover;
+  border: 3px solid #3b82f6; /* Blue border */
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.5); /* Strong Glow */
+  background-color: #000;
+  transition: transform 0.3s ease;
+}
+
+/* Optional: Slight zoom when you hover over the mascot */
+.mascot-video:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 35px rgba(59, 130, 246, 0.7);
+}

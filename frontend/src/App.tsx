@@ -13,7 +13,7 @@ function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionKey, setSessionKey] = useState(0);
-  const [isDragging, setIsDragging] = useState(false); // state for dragging
+  const [isDragging, setIsDragging] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -21,7 +21,6 @@ function App() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // upload function 
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -38,13 +37,11 @@ function App() {
     }
   };
 
-  // button upload
   const handleButtonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) uploadFile(file);
   };
 
-  // drag & drop events
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -60,7 +57,6 @@ function App() {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      // check file type 
       const validTypes = ['.pdf', '.docx', '.pptx', '.xlsx'];
       const isValid = validTypes.some(ext => file.name.toLowerCase().endsWith(ext));
       
@@ -69,13 +65,11 @@ function App() {
     }
   };
 
-  // clear chat
   const clearChat = () => {
     setMessages([]);
     setSessionKey(prev => prev + 1);
   };
 
-  // reset brain
   const resetBrain = async () => {
     if(!confirm("Are you sure you want to delete all AI memory?")) return;
     try {
@@ -87,7 +81,6 @@ function App() {
     }
   };
 
-  // send message
   const sendMessage = async () => {
     if (!input.trim()) return;
     
@@ -126,12 +119,26 @@ function App() {
       {/* SIDEBAR */}
       <div className="sidebar">
         <div className="sidebar-header">
-          <h2>🤖 ConsultPro</h2>
+          {/* Reverted title to text/emoji since video moved down */}
+          <h2>🤖 ConsultPro</h2> 
           <p>Your AI Assistant</p>
         </div>
 
         <div className="sidebar-controls">
           
+          {/* NEW: MASCOT VIDEO SECTION */}
+          <div className="mascot-container">
+            <video 
+              className="mascot-video" 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+            >
+              <source src="/robot_logo.mp4" type="video/mp4" />
+            </video>
+          </div>
+
           {/* DRAG & DROP ZONE */}
           <div 
             className={`drop-zone ${isDragging ? 'dragging' : ''}`}
