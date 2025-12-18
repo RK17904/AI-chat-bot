@@ -118,18 +118,12 @@ function App() {
     <div className="app-container">
       {/* SIDEBAR */}
       <div className="sidebar">
+        
+        {/* NEW HEADER WITH VIDEO LOGO */}
         <div className="sidebar-header">
-          {/* Reverted title to text/emoji since video moved down */}
-          <h2>🤖 ConsultPro</h2> 
-          <p>Your AI Assistant</p>
-        </div>
-
-        <div className="sidebar-controls">
-          
-          {/* NEW: MASCOT VIDEO SECTION */}
-          <div className="mascot-container">
+          <div className="brand-container">
             <video 
-              className="mascot-video" 
+              className="brand-video" 
               autoPlay 
               loop 
               muted 
@@ -137,9 +131,12 @@ function App() {
             >
               <source src="/robot_logo.mp4" type="video/mp4" />
             </video>
+            <h2>ConsultPro</h2>
           </div>
+          <p>Your AI Assistant</p>
+        </div>
 
-          {/* DRAG & DROP ZONE */}
+        <div className="sidebar-controls">
           <div 
             className={`drop-zone ${isDragging ? 'dragging' : ''}`}
             onDragOver={onDragOver}
