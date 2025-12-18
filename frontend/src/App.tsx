@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Upload, RefreshCw, FileText, Bot, User } from 'lucide-react';
+import { Send, Trash2, Upload, RefreshCw, FileText, Bot, User, CloudUpload } from 'lucide-react';
 import './App.css';
 
 interface Message {
@@ -12,22 +12,17 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  //completely reset when "Clear Chat" is clicked
   const [sessionKey, setSessionKey] = useState(0);
+  const [isDragging, setIsDragging] = useState(false); // state for dragging
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // aquto scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  //handel file upload
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // upload function 
+  const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -36,20 +31,51 @@ function App() {
         method: 'POST',
         body: formData,
       });
-      if (res.ok) alert("✅ File Uploaded!");
+      if (res.ok) alert(`✅ Uploaded: ${file.name}`);
       else alert("❌ Upload failed.");
     } catch (error) {
       alert("❌ Error uploading file.");
     }
   };
 
-  //clear chat
+  // button upload
+  const handleButtonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+  };
+
+  // drag & drop events
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      // check file type 
+      const validTypes = ['.pdf', '.docx', '.pptx', '.xlsx'];
+      const isValid = validTypes.some(ext => file.name.toLowerCase().endsWith(ext));
+      
+      if (isValid) uploadFile(file);
+      else alert("❌ Invalid file type. Please upload PDF, Word, Excel, or PowerPoint.");
+    }
+  };
+
+  // clear chat
   const clearChat = () => {
     setMessages([]);
     setSessionKey(prev => prev + 1);
   };
 
-  // reset brain (clear backend memory)
+  // reset brain
   const resetBrain = async () => {
     if(!confirm("Are you sure you want to delete all AI memory?")) return;
     try {
@@ -57,11 +83,11 @@ function App() {
       clearChat();
       alert("🧠 Memory Wiped.");
     } catch (e) {
-      clearChat(); // clear UI even if backend fails
+      clearChat();
     }
   };
 
-  //dend message logic 
+  // send message
   const sendMessage = async () => {
     if (!input.trim()) return;
     
@@ -71,7 +97,6 @@ function App() {
     setLoading(true);
 
     try {
-      // prepare history for backend
       const historyPayload = messages.map(m => ({
         role: m.role === 'bot' ? 'assistant' : 'user',
         content: m.content
@@ -87,13 +112,7 @@ function App() {
       });
       
       const data = await res.json();
-      
-      const botMsg: Message = { 
-        role: 'bot', 
-        content: data.answer,
-        sources: data.sources 
-      };
-      
+      const botMsg: Message = { role: 'bot', content: data.answer, sources: data.sources };
       setMessages(prev => [...prev, botMsg]);
     } catch (err) {
       setMessages(prev => [...prev, { role: 'bot', content: "Error connecting to backend." }]);
@@ -104,7 +123,7 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* side bar */}
+      {/* SIDEBAR */}
       <div className="sidebar">
         <div className="sidebar-header">
           <h2>🤖 ConsultPro</h2>
@@ -112,13 +131,26 @@ function App() {
         </div>
 
         <div className="sidebar-controls">
+          
+          {/* DRAG & DROP ZONE */}
+          <div 
+            className={`drop-zone ${isDragging ? 'dragging' : ''}`}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+          >
+            <CloudUpload size={32} className="drop-icon" />
+            <p>Drag & Drop files here</p>
+            <span className="file-types">PDF, DOCX, PPTX, XLSX</span>
+          </div>
+
           <div className="control-group">
             <label className="upload-btn">
-              <Upload size={18} /> Upload Document
+              <Upload size={18} /> Select File
               <input 
                 key={sessionKey}
                 type="file" 
-                onChange={handleUpload} 
+                onChange={handleButtonUpload} 
                 accept=".pdf,.docx,.pptx,.xlsx"
                 hidden 
               />
@@ -136,11 +168,9 @@ function App() {
         </div>
       </div>
 
-      {/* main chat area */}
+      {/* CHAT AREA */}
       <div className="chat-area">
         <div className="messages-container">
-          
-          {/* default animated robot */}
           {messages.length === 0 && (
             <div className="empty-state">
               <div className="robot-container">
@@ -153,13 +183,11 @@ function App() {
                 </div>
                 <div className="robot-shadow"></div>
               </div>
-              
               <h3>How can I help you today?</h3>
-              <p>Where should we start?</p>
+              <p>Upload a document to get started.</p>
             </div>
           )}
 
-          {/* chat messages */}
           {messages.map((m, i) => (
             <div key={i} className={`message-wrapper ${m.role}`}>
               <div className="avatar">
@@ -167,37 +195,27 @@ function App() {
               </div>
               <div className="message-bubble">
                 <div className="msg-content">{m.content}</div>
-                
-                {/* sourse section */}
                 {m.sources && m.sources.length > 0 && (
                   <div className="sources">
                     <div className="source-title"><FileText size={12} /> Sources:</div>
-                    <ul>
-                      {m.sources.map((s, idx) => <li key={idx}>{s}</li>)}
-                    </ul>
+                    <ul>{m.sources.map((s, idx) => <li key={idx}>{s}</li>)}</ul>
                   </div>
                 )}
               </div>
             </div>
           ))}
 
-          {/* loading animation  */}
           {loading && (
             <div className="message-wrapper bot">
               <div className="avatar"><Bot size={20} /></div>
               <div className="message-bubble loading">
-                <span className="dot"></span>
-                <span className="dot"></span>
-                <span className="dot"></span>
+                <span className="dot"></span><span className="dot"></span><span className="dot"></span>
               </div>
             </div>
           )}
-          
-          {/* scroll anchor*/}
           <div ref={bottomRef} />
         </div>
 
-        {/* input area */}
         <div className="input-container">
           <div className="input-wrapper">
             <input 
