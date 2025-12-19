@@ -505,10 +505,49 @@ body {
   background-color: #000; 
 }
 
-/* sdjust the existing header */
+/* adjust the existing header */
 .sidebar-header h2 {
   margin: 0;
   color: #60a5fa;
   font-size: 1.4rem;
   line-height: 1;
+}
+
+/* UPLOAD ANIMATION STATE */
+.drop-zone.uploading {
+  border-color: #3b82f6; 
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border-style: solid; 
+  cursor: wait; 
+}
+
+/* Spinner Icon Animation */
+.spin-icon {
+  animation: spin 1.5s linear infinite;
+  color: #16e36f;
+  margin-bottom: 5px;
+}
+
+/* File Name text styling */
+.file-name {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Disable the button while uploading */
+.upload-btn.disabled {
+  background: #475569;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Keyframes for the spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

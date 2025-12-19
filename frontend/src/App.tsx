@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Upload, RefreshCw, FileText, Bot, User, CloudUpload } from 'lucide-react';
+import { Send, Trash2, Upload, RefreshCw, FileText, Bot, User, CloudUpload, Loader2 } from 'lucide-react';
 import './App.css';
 
 interface Message {
@@ -13,7 +13,11 @@ function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionKey, setSessionKey] = useState(0);
+  
+  // New states for File Upload UI
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadFileName, setUploadFileName] = useState('');
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -22,18 +26,32 @@ function App() {
   }, [messages, loading]);
 
   const uploadFile = async (file: File) => {
+    // 1. Start Upload State
+    setIsUploading(true);
+    setUploadFileName(file.name);
+
     const formData = new FormData();
     formData.append('file', file);
 
     try {
+      // 2. Perform the actual upload
       const res = await fetch('http://localhost:8000/upload', {
         method: 'POST',
         body: formData,
       });
-      if (res.ok) alert(`✅ Uploaded: ${file.name}`);
-      else alert("❌ Upload failed.");
+
+      // 3. Handle Result (with a small delay to let user see animation)
+      if (res.ok) {
+        setTimeout(() => alert(`✅ Uploaded: ${file.name}`), 500);
+      } else {
+        alert("❌ Upload failed.");
+      }
     } catch (error) {
       alert("❌ Error uploading file.");
+    } finally {
+      // 4. Reset UI State
+      setIsUploading(false);
+      setUploadFileName('');
     }
   };
 
@@ -44,7 +62,7 @@ function App() {
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(true);
+    if (!isUploading) setIsDragging(true);
   };
 
   const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
@@ -55,6 +73,9 @@ function App() {
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
+    
+    if (isUploading) return; // Prevent dropping while already uploading
+
     const file = e.dataTransfer.files?.[0];
     if (file) {
       const validTypes = ['.pdf', '.docx', '.pptx', '.xlsx'];
@@ -118,8 +139,6 @@ function App() {
     <div className="app-container">
       {/* SIDEBAR */}
       <div className="sidebar">
-        
-        {/* NEW HEADER WITH VIDEO LOGO */}
         <div className="sidebar-header">
           <div className="brand-container">
             <video 
@@ -137,19 +156,29 @@ function App() {
         </div>
 
         <div className="sidebar-controls">
-          <div 
-            className={`drop-zone ${isDragging ? 'dragging' : ''}`}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-          >
-            <CloudUpload size={32} className="drop-icon" />
-            <p>Drag & Drop files here</p>
-            <span className="file-types">PDF, DOCX, PPTX, XLSX</span>
-          </div>
+          
+          {/* TOGGLE: Show Upload Animation OR Drag & Drop Zone */}
+          {isUploading ? (
+            <div className="drop-zone uploading">
+              <Loader2 size={32} className="spin-icon" />
+              <p>Uploading...</p>
+              <span className="file-name">{uploadFileName}</span>
+            </div>
+          ) : (
+            <div 
+              className={`drop-zone ${isDragging ? 'dragging' : ''}`}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+            >
+              <CloudUpload size={32} className="drop-icon" />
+              <p>Drag & Drop files here</p>
+              <span className="file-types">PDF, DOCX, PPTX, XLSX</span>
+            </div>
+          )}
 
           <div className="control-group">
-            <label className="upload-btn">
+            <label className={`upload-btn ${isUploading ? 'disabled' : ''}`}>
               <Upload size={18} /> Select File
               <input 
                 key={sessionKey}
@@ -157,6 +186,7 @@ function App() {
                 onChange={handleButtonUpload} 
                 accept=".pdf,.docx,.pptx,.xlsx"
                 hidden 
+                disabled={isUploading}
               />
             </label>
           </div>
