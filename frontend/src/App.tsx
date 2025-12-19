@@ -14,12 +14,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [sessionKey, setSessionKey] = useState(0);
   
-  // UI states
+  // UI state
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
-  // the successfully uploaded file
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  // storing an array of files
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +28,12 @@ function App() {
   }, [messages, loading]);
 
   const uploadFile = async (file: File) => {
+    // prevent duplicate uploads
+    if (uploadedFiles.some(f => f.name === file.name)) {
+      alert("⚠️ This file is already uploaded!");
+      return;
+    }
+
     setIsUploading(true);
 
     const formData = new FormData();
@@ -40,8 +46,8 @@ function App() {
       });
 
       if (res.ok) {
-        // set the file to state(show the preview)
-        setUploadedFile(file);
+        // list instead of replacing
+        setUploadedFiles(prev => [...prev, file]);
       } else {
         alert("❌ Upload failed.");
       }
@@ -52,9 +58,9 @@ function App() {
     }
   };
 
-  const removeFile = async () => {
-    setUploadedFile(null); 
-    setSessionKey(prev => prev + 1); // reset the file input
+  const removeFile = (fileNameToRemove: string) => {
+    //removes from UI
+    setUploadedFiles(prev => prev.filter(f => f.name !== fileNameToRemove));
   };
 
   const handleButtonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,7 +70,7 @@ function App() {
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (!isUploading && !uploadedFile) setIsDragging(true);
+    if (!isUploading) setIsDragging(true);
   };
 
   const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
@@ -76,7 +82,7 @@ function App() {
     e.preventDefault();
     setIsDragging(false);
     
-    if (isUploading || uploadedFile) return;
+    if (isUploading) return;
 
     const file = e.dataTransfer.files?.[0];
     if (file) {
@@ -97,7 +103,7 @@ function App() {
     try {
       await fetch('http://localhost:8000/reset', { method: 'DELETE' });
       clearChat();
-      setUploadedFile(null); 
+      setUploadedFiles([]); // clear the entire list
       alert("🧠 Memory Wiped.");
     } catch (e) {
       clearChat();
@@ -159,32 +165,35 @@ function App() {
 
         <div className="sidebar-controls">
           
-          {/* UPLOAD SECTION */}
-          
+          {/* file list (scrollable) */}
+          <div className="files-list">
+            {uploadedFiles.map((file, index) => (
+              <div key={index} className="file-preview-card">
+                <div className="file-info">
+                  <FileText size={24} className="file-icon-preview" />
+                  <div className="file-details">
+                    <span className="file-name-preview">{file.name}</span>
+                    <span className="file-status"><CheckCircle size={10}/> Ready</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => removeFile(file.name)} 
+                  className="remove-file-btn" 
+                  title="Remove from list"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* upload zone */}
           {isUploading ? (
-            /* uploading state */
             <div className="drop-zone uploading">
               <Loader2 size={32} className="spin-icon" />
               <p>Uploading...</p>
             </div>
-
-          ) : uploadedFile ? (
-            /* file preview state*/
-            <div className="file-preview-card">
-              <div className="file-info">
-                <FileText size={28} className="file-icon-preview" />
-                <div className="file-details">
-                  <span className="file-name-preview">{uploadedFile.name}</span>
-                  <span className="file-status"><CheckCircle size={12}/> Ready to Chat</span>
-                </div>
-              </div>
-              <button onClick={removeFile} className="remove-file-btn" title="Remove File">
-                <X size={16} />
-              </button>
-            </div>
-
           ) : (
-            /* drag & drop state (default) */
             <div 
               className={`drop-zone ${isDragging ? 'dragging' : ''}`}
               onDragOver={onDragOver}
@@ -192,13 +201,13 @@ function App() {
               onDrop={onDrop}
             >
               <CloudUpload size={32} className="drop-icon" />
-              <p>Drag & Drop files here</p>
-              <span className="file-types">PDF, DOCX, PPTX, XLSX</span>
+              <p>Add another file</p>
+              <span className="file-types">Drag & drop or use button</span>
             </div>
           )}
 
           <div className="control-group">
-            <label className={`upload-btn ${isUploading || uploadedFile ? 'disabled' : ''}`}>
+            <label className={`upload-btn ${isUploading ? 'disabled' : ''}`}>
               <Upload size={18} /> Select File
               <input 
                 key={sessionKey}
@@ -206,7 +215,7 @@ function App() {
                 onChange={handleButtonUpload} 
                 accept=".pdf,.docx,.pptx,.xlsx"
                 hidden 
-                disabled={isUploading || !!uploadedFile}
+                disabled={isUploading}
               />
             </label>
           </div>
@@ -238,7 +247,7 @@ function App() {
                 <div className="robot-shadow"></div>
               </div>
               <h3>How can I help you today?</h3>
-              <p>Upload a document to get started.</p>
+              <p>Upload documents to give me knowledge.</p>
             </div>
           )}
 
