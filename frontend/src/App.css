@@ -513,7 +513,7 @@ body {
   line-height: 1;
 }
 
-/* UPLOAD ANIMATION STATE */
+/*animation state */
 .drop-zone.uploading {
   border-color: #3b82f6; 
   background-color: rgba(59, 130, 246, 0.1);
@@ -522,14 +522,14 @@ body {
   cursor: wait; 
 }
 
-/* Spinner Icon Animation */
+/* spinner icon animation */
 .spin-icon {
   animation: spin 1.5s linear infinite;
   color: #16e36f;
   margin-bottom: 5px;
 }
 
-/* File Name text styling */
+/* file name text styling */
 .file-name {
   font-size: 0.75rem;
   color: #94a3b8;
@@ -539,15 +539,83 @@ body {
   max-width: 100%;
 }
 
-/* Disable the button while uploading */
+/* disable the button  */
 .upload-btn.disabled {
   background: #475569;
   cursor: not-allowed;
   opacity: 0.7;
 }
 
-/* Keyframes for the spinner */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+/* FILE PREVIEW CARD */
+.file-preview-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(30, 41, 59, 0.8); 
+  border: 1px solid #3b82f6; 
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s ease-out;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden; 
+}
+
+.file-icon-preview {
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.file-name-preview {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px; 
+}
+
+.file-status {
+  font-size: 0.7rem;
+  color: #4ade80; 
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+/*remove button (x) */
+.remove-file-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-file-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1); 
+  color: #ef4444; 
 }
