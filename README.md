@@ -76,10 +76,10 @@ npm run dev
 | ![Dashboard](frontend/public/sample_2.png) | ![Chat](frontend/public/sample_3.png) |
 ---
 ## 🤝 Contributing
-### Contributions are welcome! Feel free to open an issue or submit a pull request.
+#### Contributions are welcome! Feel free to open an issue or submit a pull request.
 ---
 ## 📄 License
-Distributed under the Apache License. See [LICENSE](/LICENSE) for more information.
+#### Distributed under the Apache License. See [LICENSE](/LICENSE) for more information.
 ---
 
 
