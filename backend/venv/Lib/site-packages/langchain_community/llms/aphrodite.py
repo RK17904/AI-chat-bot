@@ -3,8 +3,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models import BaseLLM
 from langchain_core.outputs import Generation, LLMResult
-from langchain_core.utils import pre_init
-from pydantic import Field
+from langchain_core.pydantic_v1 import Field, root_validator
 
 
 class Aphrodite(BaseLLM):
@@ -156,9 +155,9 @@ class Aphrodite(BaseLLM):
     """Holds any model parameters valid for `aphrodite.LLM` call not explicitly
     specified."""
 
-    client: Any = None  #: :meta private:
+    client: Any  #: :meta private:
 
-    @pre_init
+    @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that python package exists in environment."""
 

@@ -1,11 +1,10 @@
 """Playwright web browser toolkit."""
-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Optional, Type, cast
+from typing import TYPE_CHECKING, List, Optional, Type, cast
 
+from langchain_core.pydantic_v1 import Extra, root_validator
 from langchain_core.tools import BaseTool, BaseToolkit
-from pydantic import ConfigDict, model_validator
 
 from langchain_community.tools.playwright.base import (
     BaseBrowserTool,
@@ -59,23 +58,19 @@ class PlayWrightBrowserToolkit(BaseToolkit):
         tools.
 
         See https://python.langchain.com/docs/security for more information.
-
-    Parameters:
-        sync_browser: Optional. The sync browser. Default is None.
-        async_browser: Optional. The async browser. Default is None.
     """
 
     sync_browser: Optional["SyncBrowser"] = None
     async_browser: Optional["AsyncBrowser"] = None
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_imports_and_browser_provided(cls, values: dict) -> Any:
+        extra = Extra.forbid
+        arbitrary_types_allowed = True
+
+    @root_validator
+    def validate_imports_and_browser_provided(cls, values: dict) -> dict:
         """Check that the arguments are valid."""
         lazy_import_playwright_browsers()
         if values.get("async_browser") is None and values.get("sync_browser") is None:
@@ -108,15 +103,7 @@ class PlayWrightBrowserToolkit(BaseToolkit):
         sync_browser: Optional[SyncBrowser] = None,
         async_browser: Optional[AsyncBrowser] = None,
     ) -> PlayWrightBrowserToolkit:
-        """Instantiate the toolkit.
-
-        Args:
-            sync_browser: Optional. The sync browser. Default is None.
-            async_browser: Optional. The async browser. Default is None.
-
-        Returns:
-            The toolkit.
-        """
+        """Instantiate the toolkit."""
         # This is to raise a better error than the forward ref ones Pydantic would have
         lazy_import_playwright_browsers()
         return cls(sync_browser=sync_browser, async_browser=async_browser)

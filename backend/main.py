@@ -23,13 +23,13 @@ UPLOAD_DIR = "./data"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-# Background Task Wrapper
+# background task wrapper
 def process_document_in_background(file_path: str):
     """
-    Wraps the ingest_document function so it can run
-    after the server replies to the user.
+    Feeds the document to the AI.
+    This runs in the background so the UI doesn't freeze.
     """
-    print(f"🔄 [Background] Starting ingestion for: {file_path}")
+    print(f"🔄 [Background] Processing file: {file_path}")
     try:
         result = ingest_document(file_path)
         print(f"✅ [Background] Success: {result}")
@@ -37,13 +37,13 @@ def process_document_in_background(file_path: str):
         print(f"❌ [Background] Error: {e}")
 
 
-#data models
+# data models
 class QueryRequest(BaseModel):
     question: str
     history: List[Dict[str, str]] = []
 
 
-#api endpoints
+# API endpoints
 
 @app.post("/upload")
 def upload_document(
@@ -52,23 +52,29 @@ def upload_document(
 ):
     file_path = f"{UPLOAD_DIR}/{file.filename}"
 
-    # if file exists skip processing
+    # logic states
+
+    # check the file on the server
     if os.path.exists(file_path):
-        return {
-            "status": "File already exists. Using cached version.",
-            "filename": file.filename
-        }
+        # prevent re upload
+        status_message = "File found in cache. Loading into AI memory immediately."
+        print(f"📂 File {file.filename} already exists. Skipping upload.")
 
-    #save File
-    with open(file_path, "wb+") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        background_tasks.add_task(process_document_in_background, file_path)
 
-    #queue the heavy work
-    background_tasks.add_task(process_document_in_background, file_path)
+    else:
+        # new file save
+        status_message = "File uploaded and processing started."
+        print(f"📥 New file received: {file.filename}")
 
-    # return instant success
+        with open(file_path, "wb+") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # feed it to the AI
+        background_tasks.add_task(process_document_in_background, file_path)
+
     return {
-        "status": "File received. AI is indexing in background.",
+        "status": status_message,
         "filename": file.filename
     }
 
@@ -86,21 +92,10 @@ def chat_endpoint(request: QueryRequest):
 def reset_brain():
     global vector_store
     try:
-        #delete the Vector store data
+        # wipe AI memory
         if vector_store:
             vector_store.delete_collection()
-            vector_store = None
 
-        #delete the actual files
-        if os.path.exists(UPLOAD_DIR):
-            for filename in os.listdir(UPLOAD_DIR):
-                file_path = os.path.join(UPLOAD_DIR, filename)
-                try:
-                    if os.path.isfile(file_path):
-                        os.unlink(file_path)
-                except Exception as e:
-                    print(f"Failed to delete {file_path}. Reason: {e}")
-
-        return {"status": "Brain wiped! Knowledge and files deleted."}
+        return {"status": "AI Memory wiped. Files remain in storage for fast re-loading."}
     except Exception as e:
         return {"status": f"Error wiping brain: {str(e)}"}

@@ -1,9 +1,8 @@
 """Util that calls WolframAlpha."""
-
 from typing import Any, Dict, Optional
 
+from langchain_core.pydantic_v1 import BaseModel, Extra, root_validator
 from langchain_core.utils import get_from_dict_or_env
-from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class WolframAlphaAPIWrapper(BaseModel):
@@ -18,16 +17,16 @@ class WolframAlphaAPIWrapper(BaseModel):
 
     """
 
-    wolfram_client: Any = None  #: :meta private:
+    wolfram_client: Any  #: :meta private:
     wolfram_alpha_appid: Optional[str] = None
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_environment(cls, values: Dict) -> Any:
+        extra = Extra.forbid
+
+    @root_validator()
+    def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key and python package exists in environment."""
         wolfram_alpha_appid = get_from_dict_or_env(
             values, "wolfram_alpha_appid", "WOLFRAM_ALPHA_APPID"

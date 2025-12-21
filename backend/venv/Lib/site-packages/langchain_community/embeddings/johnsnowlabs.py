@@ -3,7 +3,7 @@ import sys
 from typing import Any, List
 
 from langchain_core.embeddings import Embeddings
-from pydantic import BaseModel, ConfigDict
+from langchain_core.pydantic_v1 import BaseModel, Extra
 
 
 class JohnSnowLabsEmbeddings(BaseModel, Embeddings):
@@ -58,9 +58,10 @@ class JohnSnowLabsEmbeddings(BaseModel, Embeddings):
         except Exception as exc:
             raise Exception("Failure loading model") from exc
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
+
+        extra = Extra.forbid
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Compute doc embeddings using a JohnSnowLabs transformer model.

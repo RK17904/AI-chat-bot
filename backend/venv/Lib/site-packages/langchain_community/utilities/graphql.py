@@ -1,7 +1,7 @@
 import json
 from typing import Any, Callable, Dict, Optional
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from langchain_core.pydantic_v1 import BaseModel, Extra, root_validator
 
 
 class GraphQLAPIWrapper(BaseModel):
@@ -14,16 +14,16 @@ class GraphQLAPIWrapper(BaseModel):
     custom_headers: Optional[Dict[str, str]] = None
     fetch_schema_from_transport: Optional[bool] = None
     graphql_endpoint: str
-    gql_client: Any = None  #: :meta private:
+    gql_client: Any  #: :meta private:
     gql_function: Callable[[str], Any]  #: :meta private:
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_environment(cls, values: Dict) -> Any:
+        extra = Extra.forbid
+
+    @root_validator(pre=True)
+    def validate_environment(cls, values: Dict) -> Dict:
         """Validate that the python package exists in the environment."""
         try:
             from gql import Client, gql

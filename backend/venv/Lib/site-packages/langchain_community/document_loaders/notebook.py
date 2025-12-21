@@ -1,5 +1,4 @@
 """Loads .ipynb notebook files."""
-
 import json
 from pathlib import Path
 from typing import Any, List, Union

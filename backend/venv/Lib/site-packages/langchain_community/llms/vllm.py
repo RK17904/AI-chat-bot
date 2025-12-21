@@ -3,8 +3,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import BaseLLM
 from langchain_core.outputs import Generation, LLMResult
-from langchain_core.utils import pre_init
-from pydantic import Field
+from langchain_core.pydantic_v1 import Field, root_validator
 
 from langchain_community.llms.openai import BaseOpenAI
 from langchain_community.utils.openai import is_openai_v1
@@ -72,9 +71,9 @@ class VLLM(BaseLLM):
     vllm_kwargs: Dict[str, Any] = Field(default_factory=dict)
     """Holds any model parameters valid for `vllm.LLM` call not explicitly specified."""
 
-    client: Any = None  #: :meta private:
+    client: Any  #: :meta private:
 
-    @pre_init
+    @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that python package exists in environment."""
 
@@ -123,26 +122,14 @@ class VLLM(BaseLLM):
         **kwargs: Any,
     ) -> LLMResult:
         """Run the LLM on the given prompt and input."""
-        from vllm import SamplingParams
 
-        lora_request = kwargs.pop("lora_request", None)
+        from vllm import SamplingParams
 
         # build sampling parameters
         params = {**self._default_params, **kwargs, "stop": stop}
-
-        # filter params for SamplingParams
-        known_keys = SamplingParams.__annotations__.keys()
-        sample_params = SamplingParams(
-            **{k: v for k, v in params.items() if k in known_keys}
-        )
-
+        sampling_params = SamplingParams(**params)
         # call the model
-        if lora_request:
-            outputs = self.client.generate(
-                prompts, sample_params, lora_request=lora_request
-            )
-        else:
-            outputs = self.client.generate(prompts, sample_params)
+        outputs = self.client.generate(prompts, sampling_params)
 
         generations = []
         for output in outputs:

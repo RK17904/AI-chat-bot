@@ -1,11 +1,11 @@
 """Wrapper around Xinference embedding models."""
-
 from typing import Any, List, Optional
 
 from langchain_core.embeddings import Embeddings
 
 
 class XinferenceEmbeddings(Embeddings):
+
     """Xinference embedding models.
 
     To use, you should have the xinference library installed:
@@ -13,12 +13,6 @@ class XinferenceEmbeddings(Embeddings):
     .. code-block:: bash
 
         pip install xinference
-
-    If you're simply using the services provided by Xinference, you can utilize the xinference_client package:
-
-    .. code-block:: bash
-
-        pip install xinference_client
 
     Check out: https://github.com/xorbitsai/inference
     To run, you need to start a Xinference supervisor on one server and Xinference workers on the other servers.
@@ -37,12 +31,6 @@ class XinferenceEmbeddings(Embeddings):
         .. code-block:: bash
 
            $ xinference-supervisor
-
-        If you're simply using the services provided by Xinference, you can utilize the xinference_client package:
-
-        .. code-block:: bash
-
-            pip install xinference_client
 
         Starting the worker:
 
@@ -84,14 +72,11 @@ class XinferenceEmbeddings(Embeddings):
     ):
         try:
             from xinference.client import RESTfulClient
-        except ImportError:
-            try:
-                from xinference_client import RESTfulClient
-            except ImportError as e:
-                raise ImportError(
-                    "Could not import RESTfulClient from xinference. Please install it"
-                    " with `pip install xinference` or `pip install xinference_client`."
-                ) from e
+        except ImportError as e:
+            raise ImportError(
+                "Could not import RESTfulClient from xinference. Please install it"
+                " with `pip install xinference`."
+            ) from e
 
         super().__init__()
 

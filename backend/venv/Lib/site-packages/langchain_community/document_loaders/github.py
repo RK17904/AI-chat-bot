@@ -1,12 +1,12 @@
 import base64
 from abc import ABC
 from datetime import datetime
-from typing import Any, Callable, Dict, Iterator, List, Literal, Optional, Union
+from typing import Callable, Dict, Iterator, List, Literal, Optional, Union
 
 import requests
 from langchain_core.documents import Document
+from langchain_core.pydantic_v1 import BaseModel, root_validator, validator
 from langchain_core.utils import get_from_dict_or_env
-from pydantic import BaseModel, field_validator, model_validator
 
 from langchain_community.document_loaders.base import BaseLoader
 
@@ -21,9 +21,8 @@ class BaseGitHubLoader(BaseLoader, BaseModel, ABC):
     github_api_url: str = "https://api.github.com"
     """URL of GitHub API"""
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_environment(cls, values: Dict) -> Any:
+    @root_validator(pre=True, allow_reuse=True)
+    def validate_environment(cls, values: Dict) -> Dict:
         """Validate that access token exists in environment."""
         values["access_token"] = get_from_dict_or_env(
             values, "access_token", "GITHUB_PERSONAL_ACCESS_TOKEN"
@@ -73,8 +72,7 @@ class GitHubIssuesLoader(BaseGitHubLoader):
     """Number of items per page. 
         Defaults to 30 in the GitHub API."""
 
-    @field_validator("since")
-    @classmethod
+    @validator("since", allow_reuse=True)
     def validate_since(cls, v: Optional[str]) -> Optional[str]:
         if v:
             try:
@@ -180,6 +178,7 @@ class GitHubIssuesLoader(BaseGitHubLoader):
 class GithubFileLoader(BaseGitHubLoader, ABC):
     """Load GitHub File"""
 
+    file_extension: str = ".md"
     branch: str = "main"
 
     file_filter: Optional[Callable[[str], bool]]
@@ -208,10 +207,7 @@ class GithubFileLoader(BaseGitHubLoader, ABC):
         ]
 
     def get_file_content_by_path(self, path: str) -> str:
-        queryparams = f"?ref={self.branch}" if self.branch else ""
-        base_url = (
-            f"{self.github_api_url}/repos/{self.repo}/contents/{path}{queryparams}"
-        )
+        base_url = f"{self.github_api_url}/repos/{self.repo}/contents/{path}"
         response = requests.get(base_url, headers=self.headers)
         response.raise_for_status()
 

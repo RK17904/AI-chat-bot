@@ -7,9 +7,9 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import LLM
 from langchain_core.outputs import GenerationChunk
-from langchain_core.utils import get_pydantic_field_names, pre_init
-from langchain_core.utils.utils import _build_model_kwargs
-from pydantic import Field, model_validator
+from langchain_core.pydantic_v1 import Field, root_validator
+from langchain_core.utils import get_pydantic_field_names
+from langchain_core.utils.utils import build_extra_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class LlamaCpp(LLM):
             llm = LlamaCpp(model_path="/path/to/llama/model")
     """
 
-    client: Any = None  #: :meta private:
+    client: Any  #: :meta private:
     model_path: str
     """The path to the Llama model file."""
 
@@ -133,7 +133,7 @@ class LlamaCpp(LLM):
     verbose: bool = True
     """Print verbose output to stderr."""
 
-    @pre_init
+    @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that llama-cpp-python library is installed."""
         try:
@@ -194,12 +194,14 @@ class LlamaCpp(LLM):
             pass
         return values
 
-    @model_validator(mode="before")
-    @classmethod
-    def build_model_kwargs(cls, values: Dict[str, Any]) -> Any:
+    @root_validator(pre=True)
+    def build_model_kwargs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Build extra kwargs from additional params that were passed in."""
         all_required_field_names = get_pydantic_field_names(cls)
-        values = _build_model_kwargs(values, all_required_field_names)
+        extra = values.get("model_kwargs", {})
+        values["model_kwargs"] = build_extra_kwargs(
+            extra, values, all_required_field_names
+        )
         return values
 
     @property

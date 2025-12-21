@@ -35,16 +35,15 @@ class AthenaLoader(BaseLoader):
         query: str,
         database: str,
         s3_output_uri: str,
-        profile_name: Optional[str] = None,
+        profile_name: str,
         metadata_columns: Optional[List[str]] = None,
     ):
         """Initialize Athena document loader.
 
         Args:
             query: The query to run in Athena.
-            database: Athena database.
-            s3_output_uri: Athena output path.
-            profile_name: Optional. AWS credential profile, if profiles are being used.
+            database: Athena database
+            s3_output_uri: Athena output path
             metadata_columns: Optional. Columns written to Document `metadata`.
         """
         self.query = query

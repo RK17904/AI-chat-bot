@@ -1,6 +1,6 @@
-from typing import Any, List, Optional
+from typing import List, Optional
 
-from pydantic import BaseModel
+from langchain_core.pydantic_v1 import BaseModel
 
 
 class Validation(BaseModel):
@@ -15,7 +15,7 @@ class Parameter(BaseModel):
     key: str
     title: str
     description: Optional[str] = None
-    type: Any
+    type: str
     validation: Optional[Validation] = None
 
 

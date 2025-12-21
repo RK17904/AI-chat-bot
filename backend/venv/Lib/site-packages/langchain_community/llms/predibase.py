@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import LLM
-from pydantic import Field, SecretStr
+from langchain_core.pydantic_v1 import Field, SecretStr
 
 
 class Predibase(LLM):
@@ -34,7 +34,8 @@ class Predibase(LLM):
         {
             "max_new_tokens": 256,
             "temperature": 0.1,
-        }
+        },
+        const=True,
     )
 
     @property
@@ -48,11 +49,9 @@ class Predibase(LLM):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> str:
-        options: Dict[str, Union[str, float]] = {
-            **self.default_options_for_generation,
-            **(self.model_kwargs or {}),
-            **(kwargs or {}),
-        }
+        options: Dict[str, Union[str, float]] = (
+            self.model_kwargs or self.default_options_for_generation
+        )
         if self._is_deprecated_sdk_version():
             try:
                 from predibase import PredibaseClient
@@ -138,9 +137,6 @@ class Predibase(LLM):
             if self.adapter_version:
                 # Since the adapter version is provided, query the Predibase repository.
                 pb_adapter_id: str = f"{self.adapter_id}/{self.adapter_version}"
-                options.pop(
-                    "api_token", None
-                )  # The "api_token" is not used for Predibase-hosted models.
                 try:
                     response = lorax_client.generate(
                         prompt=prompt,

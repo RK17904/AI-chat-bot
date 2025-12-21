@@ -1,5 +1,4 @@
 """Utilities to init Vertex AI."""
-
 from importlib import metadata
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 

@@ -1,5 +1,4 @@
 """Astra DB - based chat message history, based on astrapy."""
-
 from __future__ import annotations
 
 import json
@@ -27,7 +26,7 @@ DEFAULT_COLLECTION_NAME = "langchain_message_store"
 
 @deprecated(
     since="0.0.25",
-    removal="1.0",
+    removal="0.3.0",
     alternative_import="langchain_astradb.AstraDBChatMessageHistory",
 )
 class AstraDBChatMessageHistory(BaseChatMessageHistory):

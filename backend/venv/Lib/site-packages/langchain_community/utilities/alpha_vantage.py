@@ -1,10 +1,9 @@
 """Util that calls AlphaVantage for Currency Exchange Rate."""
-
 from typing import Any, Dict, List, Optional
 
 import requests
+from langchain_core.pydantic_v1 import BaseModel, Extra, root_validator
 from langchain_core.utils import get_from_dict_or_env
-from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class AlphaVantageAPIWrapper(BaseModel):
@@ -18,13 +17,13 @@ class AlphaVantageAPIWrapper(BaseModel):
 
     alphavantage_api_key: Optional[str] = None
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_environment(cls, values: Dict) -> Any:
+        extra = Extra.forbid
+
+    @root_validator(pre=True)
+    def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key exists in environment."""
         values["alphavantage_api_key"] = get_from_dict_or_env(
             values, "alphavantage_api_key", "ALPHAVANTAGE_API_KEY"

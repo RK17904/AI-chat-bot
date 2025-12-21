@@ -1,167 +1,127 @@
 import os
-from langchain_community.document_loaders import (
-    PyPDFLoader,
-    Docx2txtLoader,
-    UnstructuredPowerPointLoader,
-    UnstructuredExcelLoader
-)
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, UnstructuredPowerPointLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
-from langchain_chroma import Chroma
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+from langchain_community.vectorstores import Chroma
+from langchain_community.chat_models import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-# Global variables
-vector_store = None
-retriever = None
-llm = None
+# for chains
+from langchain.chains import create_history_aware_retriever
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
 
+# configuration
+DB_DIR = "chroma_db"
 
-def initialize_rag():
-    """Initializes the Vector DB and AI Engine."""
-    global vector_store, retriever, llm
+# embeddings
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
-    print("⏳ Initializing Local AI (Ollama)...")
+# init vector store
+vector_store = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
+retriever = vector_store.as_retriever()
 
-    # setup embeddings (The Translator)
-    embeddings = OllamaEmbeddings(model="nomic-embed-text")
-
-    # setup vector DB (The Memory)
-    vector_store = Chroma(
-        persist_directory="./vector_db",
-        embedding_function=embeddings
-    )
-
-    # setup retriever
-    retriever = vector_store.as_retriever(search_kwargs={"k": 3})
-
-    # setup LLM (the brain)
-    # lightweight model
-    llm = ChatOllama(model="llama3.2:3b", temperature=0.7)
-
-    print("AI Ready!")
+# init LLM
+llm = ChatOllama(model="llama3.2:3b", temperature=0)
 
 
-# initialize immediately (server starts)
-initialize_rag()
+def ingest_document(file_path: str):
+    try:
+        filename = os.path.basename(file_path)
+        if file_path.endswith(".pdf"):
+            loader = PyPDFLoader(file_path)
+        elif file_path.endswith(".docx"):
+            loader = Docx2txtLoader(file_path)
+        elif file_path.endswith(".pptx"):
+            loader = UnstructuredPowerPointLoader(file_path)
+        else:
+            return f"Unsupported file type: {filename}"
+
+        docs = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        splits = text_splitter.split_documents(docs)
+        vector_store.add_documents(splits)
+        return f"Successfully ingested {filename}"
+    except Exception as e:
+        return f"Error ingesting document: {str(e)}"
 
 
 def generate_answer(question: str, history: list = []):
-    """
-    Generates an answer using History + RAG + Sources.
-    """
-    global retriever, llm
-
-    # format history
-    chat_history_str = ""
-    if history:
-        for msg in history[-3:]:
-            role = msg['role'].upper()
-            content = msg['content']
-            chat_history_str += f"{role}: {content}\n"
-
-    # smart prompt template
-    template = """
-    You are "DocuBot", a helpful AI assistant.
-
-    PREVIOUS CONVERSATION HISTORY:
-    {chat_history}
-
-    CONTEXT FROM UPLOADED DOCUMENTS:
-    {context}
-
-    CURRENT USER QUESTION:
-    {question}
-
-    INSTRUCTIONS:
-    1. ANSWER ONLY THE "CURRENT USER QUESTION". Do not re-answer previous parts of the history.
-    2. Check the "CONTEXT" first. If the answer is there, use it and cite the source.
-    3. If the answer is NOT in the context, use your own General Knowledge to answer directly.
-    4. CRITICAL: Do NOT say "No context was provided" or "I am using general knowledge." Just give the answer.
-    5. CRITICAL: Do NOT say "Hello" again unless the "CURRENT USER QUESTION" itself is a greeting.
-    """
-
-    prompt = ChatPromptTemplate.from_template(template)
-
-    # retrieval chain
-    chain = (
-        RunnableParallel({
-            "context": retriever,
-            "question": RunnablePassthrough(),
-            "chat_history": lambda x: chat_history_str,
-        })
-        .assign(answer=prompt | llm | StrOutputParser())
-        .pick(["answer", "context"])
+    # Rag pipline setup
+    contextualize_q_system_prompt = (
+        "Given a chat history and the latest user question "
+        "which might reference context in the chat history, "
+        "formulate a standalone question which can be understood "
+        "without the chat history. Do NOT answer the question, "
+        "just reformulate it if needed and otherwise return it as is."
     )
 
-    # run the chain
-    result = chain.invoke(question)
+    contextualize_q_prompt = ChatPromptTemplate.from_messages([
+        ("system", contextualize_q_system_prompt),
+        MessagesPlaceholder("chat_history"),
+        ("human", "{input}"),
+    ])
 
-    # extract sources
-    sources = []
-    if "context" in result:
-        for doc in result["context"]:
-            # Get filename and page number if available
-            source_name = os.path.basename(doc.metadata.get("source", "Unknown"))
-            page_num = doc.metadata.get("page", 0) + 1
-            sources.append(f"{source_name} (Page {page_num})")
+    history_chain = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
 
-    #remove duplicates
-    sources = list(set(sources))
+    # prompt
+    qa_system_prompt = (
+        "You are a helpful and concise assistant. Use the following pieces of retrieved context to answer the question. "
+        "\n\n"
+        "RULES FOR ANSWERING:\n"
+        "1. **Be Concise**: Keep your answer under 5 sentences if possible.\n"
+        "2. **Use Structure**: Use bullet points for lists to make it readable.\n"
+        "3. **Directness**: Get straight to the point. Do not start with 'According to the documents...'.\n"
+        "4. **Relevance**: Only answer what is asked. Do not add extra unnecessary details.\n"
+        "5. **No Context Check**: If the context is COMPLETELY UNRELATED to the question (e.g. user asks about 'Richest Countries' but context is about 'Java Code'), "
+        "start your response with the exact tag: [NO_CONTEXT] followed by a general answer.\n"
+        "\n"
+        "Context:\n"
+        "{context}"
+    )
 
-    return {"answer": result["answer"], "sources": sources}
+    qa_prompt = ChatPromptTemplate.from_messages([
+        ("system", qa_system_prompt),
+        MessagesPlaceholder("chat_history"),
+        ("human", "{input}"),
+    ])
 
+    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+    rag_chain = create_retrieval_chain(history_chain, question_answer_chain)
 
-def ingest_document(file_path):
-    global vector_store, retriever
+    # RAG run
+    response = rag_chain.invoke({
+        "input": question,
+        "chat_history": history
+    })
 
-    # select loader based on extension
-    file_ext = os.path.splitext(file_path)[1].lower()
+    answer_text = response["answer"]
 
-    if file_ext == ".pdf":
-        loader = PyPDFLoader(file_path)
-    elif file_ext == ".docx":
-        loader = Docx2txtLoader(file_path)
-    elif file_ext == ".pptx":
-        loader = UnstructuredPowerPointLoader(file_path)
-    elif file_ext == ".xlsx":
-        loader = UnstructuredExcelLoader(file_path, mode="elements")
+    clean_sources = []
+
+    if "[NO_CONTEXT]" in answer_text:
+        answer_text = answer_text.replace("[NO_CONTEXT]", "").strip()
+        clean_sources = []
+
+    elif question.strip().lower() in ["hi", "hello", "hey", "thanks", "thank you"]:
+        clean_sources = []
+
     else:
-        return f"Error: Unsupported file type {file_ext}"
+        # extract page numbers
+        unique_sources = set()
+        for doc in response["context"]:
+            src = doc.metadata.get("source", "Unknown")
+            file_name = os.path.basename(src)
+            page_num = doc.metadata.get("page", 0) + 1
+            source_entry = f"{file_name} (Page {page_num})"
+            unique_sources.add(source_entry)
+        clean_sources = list(unique_sources)
 
-    try:
-        docs = loader.load()
+    # chat fix
+    if not answer_text:
+        answer_text = "I couldn't find specific information about that in your documents, and I don't have a general answer right now."
 
-        # split text into chunks
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        splits = text_splitter.split_documents(docs)
-
-        # add to DB
-        vector_store.add_documents(splits)
-        return f"Successfully processed {len(splits)} chunks from {os.path.basename(file_path)}."
-
-    except Exception as e:
-        return f"Error reading file: {str(e)}"
-
-
-def clear_database():
-    global vector_store
-    if vector_store is None:
-        return "Database not initialized."
-
-    try:
-        # Get all IDs
-        existing_data = vector_store.get()
-        ids_to_delete = existing_data['ids']
-
-        if len(ids_to_delete) == 0:
-            return "Brain is already empty."
-
-        # delete by ID
-        vector_store.delete(ids=ids_to_delete)
-        return f"Deleted {len(ids_to_delete)} documents from memory."
-
-    except Exception as e:
-        return f"Error clearing memory: {str(e)}"
+    return {
+        "answer": answer_text,
+        "sources": clean_sources
+    }

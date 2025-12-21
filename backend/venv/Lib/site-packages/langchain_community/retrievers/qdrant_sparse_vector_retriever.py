@@ -13,30 +13,18 @@ from typing import (
     cast,
 )
 
-from langchain_core._api.deprecation import deprecated
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
+from langchain_core.pydantic_v1 import Extra, root_validator
 from langchain_core.retrievers import BaseRetriever
-from langchain_core.utils import pre_init
-from pydantic import ConfigDict
 
 from langchain_community.vectorstores.qdrant import Qdrant, QdrantException
 
 
-@deprecated(
-    since="0.2.16",
-    alternative=(
-        "Qdrant vector store now supports sparse retrievals natively. "
-        "Use langchain_qdrant.QdrantVectorStore#as_retriever() instead. "
-        "Reference: "
-        "https://python.langchain.com/docs/integrations/vectorstores/qdrant/#sparse-vector-search"
-    ),
-    removal="0.5.0",
-)
 class QdrantSparseVectorRetriever(BaseRetriever):
     """Qdrant sparse vector retriever."""
 
-    client: Any = None
+    client: Any
     """'qdrant_client' instance to use."""
     collection_name: str
     """Qdrant collection name."""
@@ -55,12 +43,13 @@ class QdrantSparseVectorRetriever(BaseRetriever):
     search_options: Dict[str, Any] = {}
     """Additional search options to pass to qdrant_client.QdrantClient.search()."""
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
 
-    @pre_init
+        extra = Extra.forbid
+        arbitrary_types_allowed = True
+
+    @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that 'qdrant_client' python package exists in environment."""
         try:

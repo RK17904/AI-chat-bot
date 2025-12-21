@@ -1,9 +1,8 @@
 """Util that calls Dataherald."""
-
 from typing import Any, Dict, Optional
 
+from langchain_core.pydantic_v1 import BaseModel, Extra, root_validator
 from langchain_core.utils import get_from_dict_or_env
-from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class DataheraldAPIWrapper(BaseModel):
@@ -18,17 +17,17 @@ class DataheraldAPIWrapper(BaseModel):
 
     """
 
-    dataherald_client: Any = None  #: :meta private:
+    dataherald_client: Any  #: :meta private:
     db_connection_id: str
     dataherald_api_key: Optional[str] = None
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_environment(cls, values: Dict) -> Any:
+        extra = Extra.forbid
+
+    @root_validator()
+    def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key and python package exists in environment."""
         dataherald_api_key = get_from_dict_or_env(
             values, "dataherald_api_key", "DATAHERALD_API_KEY"

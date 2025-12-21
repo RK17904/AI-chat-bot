@@ -2,13 +2,12 @@
 Util that calls several of Polygon's stock market REST APIs.
 Docs: https://polygon.io/docs/stocks/getting-started
 """
-
 import json
 from typing import Any, Dict, Optional
 
 import requests
+from langchain_core.pydantic_v1 import BaseModel, root_validator
 from langchain_core.utils import get_from_dict_or_env
-from pydantic import BaseModel, model_validator
 
 POLYGON_BASE_URL = "https://api.polygon.io/"
 
@@ -18,9 +17,8 @@ class PolygonAPIWrapper(BaseModel):
 
     polygon_api_key: Optional[str] = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_environment(cls, values: Dict) -> Any:
+    @root_validator()
+    def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key in environment."""
         polygon_api_key = get_from_dict_or_env(
             values, "polygon_api_key", "POLYGON_API_KEY"
@@ -45,7 +43,7 @@ class PolygonAPIWrapper(BaseModel):
         data = response.json()
 
         status = data.get("status", None)
-        if status not in ("OK", "STOCKBUSINESS", "STOCKSBUSINESS"):
+        if status != "OK":
             raise ValueError(f"API Error: {data}")
 
         return data.get("results", None)
@@ -61,7 +59,7 @@ class PolygonAPIWrapper(BaseModel):
         data = response.json()
 
         status = data.get("status", None)
-        if status not in ("OK", "STOCKBUSINESS", "STOCKSBUSINESS"):
+        if status != "OK":
             raise ValueError(f"API Error: {data}")
 
         return data.get("results", None)
@@ -82,7 +80,7 @@ class PolygonAPIWrapper(BaseModel):
         data = response.json()
 
         status = data.get("status", None)
-        if status not in ("OK", "STOCKBUSINESS", "STOCKSBUSINESS"):
+        if status != "OK":
             raise ValueError(f"API Error: {data}")
 
         return data.get("results", None)
@@ -116,7 +114,7 @@ class PolygonAPIWrapper(BaseModel):
         data = response.json()
 
         status = data.get("status", None)
-        if status not in ("OK", "STOCKBUSINESS", "STOCKSBUSINESS"):
+        if status != "OK":
             raise ValueError(f"API Error: {data}")
 
         return data.get("results", None)

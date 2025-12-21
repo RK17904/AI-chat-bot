@@ -9,7 +9,6 @@
 
     BaseCrossEncoder --> <name>CrossEncoder  # Examples: SagemakerEndpointCrossEncoder
 """
-
 import importlib
 from typing import TYPE_CHECKING, Any
 

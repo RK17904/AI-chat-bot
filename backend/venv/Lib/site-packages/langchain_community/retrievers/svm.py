@@ -8,7 +8,6 @@ from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
-from pydantic import ConfigDict
 
 
 def create_index(contexts: List[str], embeddings: Embeddings) -> np.ndarray:
@@ -35,7 +34,7 @@ class SVMRetriever(BaseRetriever):
 
     embeddings: Embeddings
     """Embeddings model to use."""
-    index: Any = None
+    index: Any
     """Index of embeddings."""
     texts: List[str]
     """List of texts to index."""
@@ -46,9 +45,11 @@ class SVMRetriever(BaseRetriever):
     relevancy_threshold: Optional[float] = None
     """Threshold for relevancy."""
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-    )
+    class Config:
+
+        """Configuration for this pydantic object."""
+
+        arbitrary_types_allowed = True
 
     @classmethod
     def from_texts(

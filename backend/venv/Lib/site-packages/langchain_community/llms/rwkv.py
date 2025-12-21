@@ -3,13 +3,11 @@
 Based on https://github.com/saharNooby/rwkv.cpp/blob/master/rwkv/chat_with_bot.py
          https://github.com/BlinkDL/ChatRWKV/blob/main/v2/chat.py
 """
-
 from typing import Any, Dict, List, Mapping, Optional, Set
 
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import LLM
-from langchain_core.utils import pre_init
-from pydantic import BaseModel, ConfigDict
+from langchain_core.pydantic_v1 import BaseModel, Extra, root_validator
 
 from langchain_community.llms.utils import enforce_stop_tokens
 
@@ -74,9 +72,10 @@ class RWKV(LLM, BaseModel):
 
     model_state: Any = None  #: :meta private:
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
+
+        extra = Extra.forbid
 
     @property
     def _default_params(self) -> Dict[str, Any]:
@@ -98,7 +97,7 @@ class RWKV(LLM, BaseModel):
             "verbose",
         }
 
-    @pre_init
+    @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that the python package exists in the environment."""
         try:

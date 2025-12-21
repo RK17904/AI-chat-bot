@@ -3,9 +3,8 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import LLM
-from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env, pre_init
-from langchain_core.utils.pydantic import get_fields
-from pydantic import ConfigDict, Field, SecretStr, model_validator
+from langchain_core.pydantic_v1 import Extra, Field, SecretStr, root_validator
+from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
 
 from langchain_community.llms.utils import enforce_stop_tokens
 
@@ -29,10 +28,10 @@ class Petals(LLM):
 
     """
 
-    client: Any = None
+    client: Any
     """The client to use for the API calls."""
 
-    tokenizer: Any = None
+    tokenizer: Any
     """The tokenizer to use for the API calls."""
 
     model_name: str = "bigscience/bloom-petals"
@@ -63,15 +62,15 @@ class Petals(LLM):
 
     huggingface_api_key: Optional[SecretStr] = None
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic config."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def build_extra(cls, values: Dict[str, Any]) -> Any:
+        extra = Extra.forbid
+
+    @root_validator(pre=True)
+    def build_extra(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Build extra kwargs from additional params that were passed in."""
-        all_required_field_names = {field.alias for field in get_fields(cls).values()}
+        all_required_field_names = {field.alias for field in cls.__fields__.values()}
 
         extra = values.get("model_kwargs", {})
         for field_name in list(values):
@@ -87,7 +86,7 @@ class Petals(LLM):
         values["model_kwargs"] = extra
         return values
 
-    @pre_init
+    @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key and python package exists in environment."""
         huggingface_api_key = convert_to_secret_str(

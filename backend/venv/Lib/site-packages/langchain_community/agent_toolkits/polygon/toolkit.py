@@ -1,8 +1,8 @@
 from typing import List
 
-from langchain_core.tools import BaseTool
-from langchain_core.tools.base import BaseToolkit
+from langchain_core.tools import BaseToolkit
 
+from langchain_community.tools import BaseTool
 from langchain_community.tools.polygon import (
     PolygonAggregates,
     PolygonFinancials,
@@ -13,11 +13,7 @@ from langchain_community.utilities.polygon import PolygonAPIWrapper
 
 
 class PolygonToolkit(BaseToolkit):
-    """Polygon Toolkit.
-
-    Parameters:
-        tools: List[BaseTool]. The tools in the toolkit.
-    """
+    """Polygon Toolkit."""
 
     tools: List[BaseTool] = []
 
@@ -25,14 +21,6 @@ class PolygonToolkit(BaseToolkit):
     def from_polygon_api_wrapper(
         cls, polygon_api_wrapper: PolygonAPIWrapper
     ) -> "PolygonToolkit":
-        """Create a Polygon Toolkit from a Polygon API Wrapper.
-
-        Args:
-            polygon_api_wrapper: PolygonAPIWrapper. The Polygon API Wrapper.
-
-        Returns:
-            PolygonToolkit. The Polygon Toolkit.
-        """
         tools = [
             PolygonAggregates(
                 api_wrapper=polygon_api_wrapper,

@@ -18,14 +18,14 @@ from langchain_core.outputs import (
     ChatGeneration,
     ChatResult,
 )
-from pydantic import BaseModel
+from langchain_core.pydantic_v1 import BaseModel, Extra
 
 logger = logging.getLogger(__name__)
 
 
 # Ignoring type because below is valid pydantic code
 # Unexpected keyword argument "extra" for "__init_subclass__" of "object"  [call-arg]
-class ChatParams(BaseModel, extra="allow"):
+class ChatParams(BaseModel, extra=Extra.allow):
     """Parameters for the `MLflow AI Gateway` LLM."""
 
     temperature: float = 0.0

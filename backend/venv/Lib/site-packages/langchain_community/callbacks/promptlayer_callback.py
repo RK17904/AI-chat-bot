@@ -1,5 +1,4 @@
 """Callback handler for promptlayer."""
-
 from __future__ import annotations
 
 import datetime

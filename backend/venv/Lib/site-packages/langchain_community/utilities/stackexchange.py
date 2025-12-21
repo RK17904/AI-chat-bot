@@ -1,13 +1,13 @@
 import html
 from typing import Any, Dict, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from langchain_core.pydantic_v1 import BaseModel, Field, root_validator
 
 
 class StackExchangeAPIWrapper(BaseModel):
     """Wrapper for Stack Exchange API."""
 
-    client: Any = None  #: :meta private:
+    client: Any  #: :meta private:
     max_results: int = 3
     """Max number of results to include in output."""
     query_type: Literal["all", "title", "body"] = "all"
@@ -19,9 +19,8 @@ class StackExchangeAPIWrapper(BaseModel):
     result_separator: str = "\n\n"
     """Separator between question,answer pairs."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_environment(cls, values: Dict) -> Any:
+    @root_validator()
+    def validate_environment(cls, values: Dict) -> Dict:
         """Validate that the required Python package exists."""
         try:
             from stackapi import StackAPI

@@ -2,18 +2,12 @@ import logging
 from typing import Any, Dict, List, Mapping, Optional
 
 import requests
-from langchain_core._api.deprecation import deprecated
 from langchain_core.embeddings import Embeddings
-from pydantic import BaseModel, ConfigDict
+from langchain_core.pydantic_v1 import BaseModel, Extra
 
 logger = logging.getLogger(__name__)
 
 
-@deprecated(
-    since="0.3.1",
-    removal="1.0.0",
-    alternative_import="langchain_ollama.OllamaEmbeddings",
-)
 class OllamaEmbeddings(BaseModel, Embeddings):
     """Ollama locally runs large language models.
 
@@ -147,7 +141,10 @@ class OllamaEmbeddings(BaseModel, Embeddings):
         """Get the identifying parameters."""
         return {**{"model": self.model}, **self._default_params}
 
-    model_config = ConfigDict(extra="forbid", protected_namespaces=())
+    class Config:
+        """Configuration for this pydantic object."""
+
+        extra = Extra.forbid
 
     def _process_emb_response(self, input: str) -> List[float]:
         """Process a response from the API.

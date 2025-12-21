@@ -10,7 +10,6 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from langchain_core.utils import guard_import
 from langchain_core.vectorstores import VectorStore
 
 from langchain_community.docstore.base import Docstore
@@ -23,7 +22,14 @@ DEFAULT_METRIC = "angular"
 
 def dependable_annoy_import() -> Any:
     """Import annoy if available, otherwise raise error."""
-    return guard_import("annoy")
+    try:
+        import annoy
+    except ImportError:
+        raise ImportError(
+            "Could not import annoy python package. "
+            "Please install it with `pip install --user annoy` "
+        )
+    return annoy
 
 
 class Annoy(VectorStore):
@@ -294,7 +300,7 @@ class Annoy(VectorStore):
                     f"Expected one of {list(INDEX_METRICS)}"
                 )
             )
-        annoy = guard_import("annoy")
+        annoy = dependable_annoy_import()
         if not embeddings:
             raise ValueError("embeddings must be provided to build AnnoyIndex")
         f = len(embeddings[0])
@@ -446,24 +452,17 @@ class Annoy(VectorStore):
                 "You will need to set `allow_dangerous_deserialization` to `True` to "
                 "enable deserialization. If you do this, make sure that you "
                 "trust the source of the data. For example, if you are loading a "
-                "file that you created, and know that no one else has modified the "
-                "file, then this is safe to do. Do not set this to `True` if you are "
-                "loading a file from an untrusted source (e.g., some random site on "
-                "the internet.)."
+                "file that you created, and no that no one else has modified the file, "
+                "then this is safe to do. Do not set this to `True` if you are loading "
+                "a file from an untrusted source (e.g., some random site on the "
+                "internet.)."
             )
         path = Path(folder_path)
         # load index separately since it is not picklable
-        annoy = guard_import("annoy")
+        annoy = dependable_annoy_import()
         # load docstore and index_to_docstore_id
         with open(path / "index.pkl", "rb") as file:
-            # Code path can only be reached if allow_dangerous_deserialization is True
-            (
-                docstore,
-                index_to_docstore_id,
-                config_object,
-            ) = pickle.load(  # ignore[pickle]: explicit-opt-in
-                file
-            )
+            docstore, index_to_docstore_id, config_object = pickle.load(file)
 
         f = int(config_object["ANNOY"]["f"])
         metric = config_object["ANNOY"]["metric"]

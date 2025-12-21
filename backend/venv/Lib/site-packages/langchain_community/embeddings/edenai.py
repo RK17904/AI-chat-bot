@@ -1,13 +1,14 @@
 from typing import Any, Dict, List, Optional
 
 from langchain_core.embeddings import Embeddings
-from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env, pre_init
-from pydantic import (
+from langchain_core.pydantic_v1 import (
     BaseModel,
-    ConfigDict,
+    Extra,
     Field,
     SecretStr,
+    root_validator,
 )
+from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
 
 from langchain_community.utilities.requests import Requests
 
@@ -29,11 +30,12 @@ class EdenAiEmbeddings(BaseModel, Embeddings):
     available models are shown on https://docs.edenai.co/ under 'available providers'
     """
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
 
-    @pre_init
+        extra = Extra.forbid
+
+    @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key exists in environment."""
         values["edenai_api_key"] = convert_to_secret_str(

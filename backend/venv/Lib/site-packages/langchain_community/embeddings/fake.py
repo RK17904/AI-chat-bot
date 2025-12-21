@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 from langchain_core.embeddings import Embeddings
-from pydantic import BaseModel
+from langchain_core.pydantic_v1 import BaseModel
 
 
 class FakeEmbeddings(Embeddings, BaseModel):
@@ -36,8 +36,7 @@ class DeterministicFakeEmbedding(Embeddings, BaseModel):
         np.random.seed(seed)
         return list(np.random.normal(size=self.size))
 
-    @staticmethod
-    def _get_seed(text: str) -> int:
+    def _get_seed(self, text: str) -> int:
         """
         Get a seed for the random generator, using the hash of the text.
         """

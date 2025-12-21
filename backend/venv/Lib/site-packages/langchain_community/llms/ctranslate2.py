@@ -3,8 +3,7 @@ from typing import Any, Dict, List, Optional, Union
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import BaseLLM
 from langchain_core.outputs import Generation, LLMResult
-from langchain_core.utils import pre_init
-from pydantic import Field
+from langchain_core.pydantic_v1 import Field, root_validator
 
 
 class CTranslate2(BaseLLM):
@@ -41,9 +40,9 @@ class CTranslate2(BaseLLM):
     sampling_temperature: float = 1
     """Sampling temperature to generate more random samples."""
 
-    client: Any = None  #: :meta private:
+    client: Any  #: :meta private:
 
-    tokenizer: Any = None  #: :meta private:
+    tokenizer: Any  #: :meta private:
 
     ctranslate2_kwargs: Dict[str, Any] = Field(default_factory=dict)
     """
@@ -51,7 +50,7 @@ class CTranslate2(BaseLLM):
     explicitly specified.
     """
 
-    @pre_init
+    @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that python package exists in environment."""
 

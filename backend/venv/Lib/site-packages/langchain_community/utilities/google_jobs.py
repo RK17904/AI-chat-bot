@@ -1,9 +1,8 @@
 """Util that calls Google Scholar Search."""
-
 from typing import Any, Dict, Optional, cast
 
+from langchain_core.pydantic_v1 import BaseModel, Extra, SecretStr, root_validator
 from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
-from pydantic import BaseModel, ConfigDict, SecretStr, model_validator
 
 
 class GoogleJobsAPIWrapper(BaseModel):
@@ -22,16 +21,16 @@ class GoogleJobsAPIWrapper(BaseModel):
         google_Jobs.run('langchain')
     """
 
-    serp_search_engine: Any = None
+    serp_search_engine: Any
     serp_api_key: Optional[SecretStr] = None
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
+    class Config:
+        """Configuration for this pydantic object."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_environment(cls, values: Dict) -> Any:
+        extra = Extra.forbid
+
+    @root_validator()
+    def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key and python package exists in environment."""
         values["serp_api_key"] = convert_to_secret_str(
             get_from_dict_or_env(values, "serp_api_key", "SERPAPI_API_KEY")
