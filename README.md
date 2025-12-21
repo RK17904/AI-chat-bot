@@ -1,7 +1,7 @@
 # 🤖 Local Hybrid RAG Chatbot
 
 ![Project Banner](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow?style=for-the-badge&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Project Screenshot](frontend/public/sample_1.png)
@@ -78,7 +78,9 @@ npm run dev
 ## 🤝 Contributing
 ### Contributions are welcome! Feel free to open an issue or submit a pull request.
 ---
-
+## 📄 License
+Distributed under the Apache License. See [LICENSE](/LICENSE) for more information.
+---
 
 
 
