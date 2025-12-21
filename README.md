@@ -6,7 +6,7 @@
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Project Screenshot](frontend/public/sample_1.png)
 
-**Local Hybrid RAG Chatbot** is a powerful, privacy focused AI assistant that enables you to chat with your documents completely offline. Built with a modern full stack architecture, it leverages **Retrieval-Augmented Generation (RAG)** to provide accurate answers with page-level citations from  PDFs, Word docs and PowerPoint slides.
+**ConsultPro** is a powerful, privacy focused AI assistant that enables you to chat with your documents completely offline. Built with a modern full stack architecture, it leverages **Retrieval-Augmented Generation (RAG)** to provide accurate answers with page-level citations from  PDFs, Word docs and PowerPoint slides.
 
 ---
 
