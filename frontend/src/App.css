@@ -632,3 +632,28 @@ font-size: 0.85rem;
 /* custom scrollbar for file list */
 .files-list::-webkit-scrollbar { width: 4px; }
 .files-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+/* FILE STATUS COLORS  */
+/* uploading State */
+.file-status.uploading {
+  color: #60a5fa; 
+  font-style: italic;
+}
+
+/* ready State */
+.file-status.ready {
+  color: #4ade80; 
+  font-weight: 600;
+}
+
+/* the spinning icon specifically inside the card */
+.file-preview-card .spin-icon {
+  color: #60a5fa;
+  animation: spin 1s linear infinite;
+}
+
+.file-preview-card.uploading {
+  border-color: rgba(96, 165, 250, 0.5);
+  background-color: rgba(30, 41, 59, 0.4);
+}
+
