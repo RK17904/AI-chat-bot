@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Upload, RefreshCw, FileText, Bot, User, CloudUpload, Loader2, X, CheckCircle } from 'lucide-react';
+import { Send, Trash2, Upload, RefreshCw, FileText, Bot, User, CloudUpload, Loader2, X, CheckCircle, AlertCircle } from 'lucide-react';
 import './App.css';
 
 interface Message {
@@ -8,18 +8,23 @@ interface Message {
   sources?: string[];
 }
 
+//interface to track status per file
+interface UploadedFile {
+  name: string;
+  status: 'uploading' | 'ready' | 'error';
+}
+
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionKey, setSessionKey] = useState(0);
   
-  // UI state
+  // UI States
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   
-  // storing an array of files
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  // Store file objects with status
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -28,49 +33,55 @@ function App() {
   }, [messages, loading]);
 
   const uploadFile = async (file: File) => {
-    // prevent duplicate uploads
+    // Prevent duplicate uploads based on name
     if (uploadedFiles.some(f => f.name === file.name)) {
-      alert("⚠️ This file is already uploaded!");
+      alert(`⚠️ ${file.name} is already added!`);
       return;
     }
 
-    setIsUploading(true);
+    // show file immediately with 'uploading' status
+    const newFile: UploadedFile = { name: file.name, status: 'uploading' };
+    setUploadedFiles(prev => [...prev, newFile]);
 
     const formData = new FormData();
     formData.append('file', file);
 
     try {
+      //perform upload in background
       const res = await fetch('http://localhost:8000/upload', {
         method: 'POST',
         body: formData,
       });
 
       if (res.ok) {
-        // list instead of replacing
-        setUploadedFiles(prev => [...prev, file]);
+        // 'ready' status on success
+        setUploadedFiles(prev => prev.map(f => 
+          f.name === file.name ? { ...f, status: 'ready' } : f
+        ));
       } else {
-        alert("❌ Upload failed.");
+        throw new Error("Upload failed");
       }
     } catch (error) {
-      alert("❌ Error uploading file.");
-    } finally {
-      setIsUploading(false);
+      //mark as error or remove
+      alert(`❌ Failed to upload ${file.name}`);
+      setUploadedFiles(prev => prev.filter(f => f.name !== file.name));
     }
   };
 
   const removeFile = (fileNameToRemove: string) => {
-    //removes from UI
     setUploadedFiles(prev => prev.filter(f => f.name !== fileNameToRemove));
   };
 
   const handleButtonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) uploadFile(file);
+    // reset input so same file can be selected again if needed
+    e.target.value = ''; 
   };
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (!isUploading) setIsDragging(true);
+    setIsDragging(true);
   };
 
   const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
@@ -82,8 +93,6 @@ function App() {
     e.preventDefault();
     setIsDragging(false);
     
-    if (isUploading) return;
-
     const file = e.dataTransfer.files?.[0];
     if (file) {
       const validTypes = ['.pdf', '.docx', '.pptx', '.xlsx'];
@@ -103,7 +112,7 @@ function App() {
     try {
       await fetch('http://localhost:8000/reset', { method: 'DELETE' });
       clearChat();
-      setUploadedFiles([]); // clear the entire list
+      setUploadedFiles([]); 
       alert("🧠 Memory Wiped.");
     } catch (e) {
       clearChat();
@@ -149,13 +158,7 @@ function App() {
       <div className="sidebar">
         <div className="sidebar-header">
           <div className="brand-container">
-            <video 
-              className="brand-video" 
-              autoPlay 
-              loop 
-              muted 
-              playsInline
-            >
+            <video className="brand-video" autoPlay loop muted playsInline>
               <source src="/robot_logo.mp4" type="video/mp4" />
             </video>
             <h2>ConsultPro</h2>
@@ -165,21 +168,30 @@ function App() {
 
         <div className="sidebar-controls">
           
-          {/* file list (scrollable) */}
+          {/* FILE LIST (Shows cards with status) */}
           <div className="files-list">
             {uploadedFiles.map((file, index) => (
-              <div key={index} className="file-preview-card">
+              <div key={index} className={`file-preview-card ${file.status}`}>
                 <div className="file-info">
-                  <FileText size={24} className="file-icon-preview" />
+                  {/* Icon Changes based on Status */}
+                  {file.status === 'uploading' ? (
+                    <Loader2 size={24} className="file-icon-preview spin-icon" />
+                  ) : (
+                    <FileText size={24} className="file-icon-preview" />
+                  )}
+                  
                   <div className="file-details">
                     <span className="file-name-preview">{file.name}</span>
-                    <span className="file-status"><CheckCircle size={10}/> Ready</span>
+                    <span className={`file-status ${file.status}`}>
+                      {file.status === 'uploading' && 'Uploading...'}
+                      {file.status === 'ready' && <><CheckCircle size={10}/> Ready</>}
+                      {file.status === 'error' && <><AlertCircle size={10}/> Failed</>}
+                    </span>
                   </div>
                 </div>
                 <button 
                   onClick={() => removeFile(file.name)} 
-                  className="remove-file-btn" 
-                  title="Remove from list"
+                  className="remove-file-btn"
                 >
                   <X size={16} />
                 </button>
@@ -187,27 +199,20 @@ function App() {
             ))}
           </div>
 
-          {/* upload zone */}
-          {isUploading ? (
-            <div className="drop-zone uploading">
-              <Loader2 size={32} className="spin-icon" />
-              <p>Uploading...</p>
-            </div>
-          ) : (
-            <div 
-              className={`drop-zone ${isDragging ? 'dragging' : ''}`}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
-            >
-              <CloudUpload size={32} className="drop-icon" />
-              <p>Add another file</p>
-              <span className="file-types">Drag & drop or use button</span>
-            </div>
-          )}
+          {/* ALWAYS VISIBLE DROP ZONE */}
+          <div 
+            className={`drop-zone ${isDragging ? 'dragging' : ''}`}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+          >
+            <CloudUpload size={32} className="drop-icon" />
+            <p>Add Files</p>
+            <span className="file-types">Drag & Drop or Click</span>
+          </div>
 
           <div className="control-group">
-            <label className={`upload-btn ${isUploading ? 'disabled' : ''}`}>
+            <label className="upload-btn">
               <Upload size={18} /> Select File
               <input 
                 key={sessionKey}
@@ -215,7 +220,6 @@ function App() {
                 onChange={handleButtonUpload} 
                 accept=".pdf,.docx,.pptx,.xlsx"
                 hidden 
-                disabled={isUploading}
               />
             </label>
           </div>
