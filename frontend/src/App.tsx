@@ -1,14 +1,21 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Upload, RefreshCw, FileText, Bot, User, CloudUpload, Loader2, X, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Trash2, Upload, RefreshCw, CloudUpload } from 'lucide-react';
+
+//import Custom Components
+import { ChatMessage } from './components/ChatMessage';
+import { FileListItem } from './components/FileListItem';
+import { ThinkingIndicator } from './components/ThinkingIndicator';
+import { SidebarHeader } from './components/SidebarHeader';
+
 import './App.css';
 
+//types 
 interface Message {
   role: 'user' | 'bot';
   content: string;
   sources?: string[];
 }
 
-//interface to track status per file
 interface UploadedFile {
   name: string;
   status: 'uploading' | 'ready' | 'error';
@@ -19,11 +26,7 @@ function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionKey, setSessionKey] = useState(0);
-  
-  // UI States
   const [isDragging, setIsDragging] = useState(false);
-  
-  // Store file objects with status
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -32,14 +35,14 @@ function App() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  // Handlers
+
   const uploadFile = async (file: File) => {
-    // Prevent duplicate uploads based on name
     if (uploadedFiles.some(f => f.name === file.name)) {
       alert(`⚠️ ${file.name} is already added!`);
       return;
     }
 
-    // show file immediately with 'uploading' status
     const newFile: UploadedFile = { name: file.name, status: 'uploading' };
     setUploadedFiles(prev => [...prev, newFile]);
 
@@ -47,65 +50,55 @@ function App() {
     formData.append('file', file);
 
     try {
-      //perform upload in background
       const res = await fetch('http://localhost:8000/upload', {
         method: 'POST',
         body: formData,
       });
 
       if (res.ok) {
-        // 'ready' status on success
-        setUploadedFiles(prev => prev.map(f => 
-          f.name === file.name ? { ...f, status: 'ready' } : f
-        ));
+        setUploadedFiles(prev => 
+          prev.map(f => f.name === file.name ? { ...f, status: 'ready' } : f)
+        );
       } else {
         throw new Error("Upload failed");
       }
     } catch (error) {
-      //mark as error or remove
       alert(`❌ Failed to upload ${file.name}`);
       setUploadedFiles(prev => prev.filter(f => f.name !== file.name));
     }
   };
 
-  const removeFile = (fileNameToRemove: string) => {
-    setUploadedFiles(prev => prev.filter(f => f.name !== fileNameToRemove));
-  };
-
   const handleButtonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) uploadFile(file);
-    // reset input so same file can be selected again if needed
-    e.target.value = ''; 
+    e.target.value = '';
   };
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
-
   const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
   };
-
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
     const file = e.dataTransfer.files?.[0];
     if (file) {
       const validTypes = ['.pdf', '.docx', '.pptx', '.xlsx'];
       const isValid = validTypes.some(ext => file.name.toLowerCase().endsWith(ext));
-      
       if (isValid) uploadFile(file);
-      else alert("❌ Invalid file type. Please upload PDF, Word, Excel, or PowerPoint.");
+      else alert("❌ Invalid file type.");
     }
   };
 
-  const clearChat = () => {
-    setMessages([]);
+  const removeFile = (fileName: string) => {
+    setUploadedFiles(prev => prev.filter(f => f.name !== fileName));
   };
+
+  const clearChat = () => setMessages([]);
 
   const resetBrain = async () => {
     if(!confirm("Are you sure you want to delete all AI memory?")) return;
@@ -115,7 +108,7 @@ function App() {
       setUploadedFiles([]); 
       alert("🧠 Memory Wiped.");
     } catch (e) {
-      clearChat();
+      alert("Error resetting brain");
     }
   };
 
@@ -154,57 +147,32 @@ function App() {
 
   return (
     <div className="app-container">
+      
       {/* SIDEBAR */}
       <div className="sidebar">
-        <div className="sidebar-header">
-          <div className="brand-container">
-            <video className="brand-video" autoPlay loop muted playsInline>
-              <source src="/robot_logo.mp4" type="video/mp4" />
-            </video>
-            <h2>ConsultPro</h2>
-          </div>
-          <p>Your AI Assistant</p>
-        </div>
+        
+        {/* Header Component */}
+        <SidebarHeader />
 
         <div className="sidebar-controls">
-          
-          {/* FILE LIST (Shows cards with status) */}
+          {/*File List Component Loop */}
           <div className="files-list">
             {uploadedFiles.map((file, index) => (
-              <div key={index} className={`file-preview-card ${file.status}`}>
-                <div className="file-info">
-                  {/* Icon Changes based on Status */}
-                  {file.status === 'uploading' ? (
-                    <Loader2 size={24} className="file-icon-preview spin-icon" />
-                  ) : (
-                    <FileText size={24} className="file-icon-preview" />
-                  )}
-                  
-                  <div className="file-details">
-                    <span className="file-name-preview">{file.name}</span>
-                    <span className={`file-status ${file.status}`}>
-                      {file.status === 'uploading' && 'Uploading...'}
-                      {file.status === 'ready' && <><CheckCircle size={10}/> Ready</>}
-                      {file.status === 'error' && <><AlertCircle size={10}/> Failed</>}
-                    </span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => removeFile(file.name)} 
-                  className="remove-file-btn"
-                >
-                  <X size={16} />
-                </button>
-              </div>
+              <FileListItem 
+                key={index}
+                filename={file.name}
+                status={file.status}
+                onRemove={() => removeFile(file.name)}
+              />
             ))}
           </div>
 
-          {/* ALWAYS VISIBLE DROP ZONE */}
           <div 
             className={`drop-zone ${isDragging ? 'dragging' : ''}`}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
+            onClick={() => document.getElementById('file-input')?.click()}
           >
             <CloudUpload size={32} className="drop-icon" />
             <p>Add Files</p>
@@ -215,6 +183,7 @@ function App() {
             <label className="upload-btn">
               <Upload size={18} /> Select File
               <input 
+                id="file-input"
                 key={sessionKey}
                 type="file" 
                 onChange={handleButtonUpload} 
@@ -224,7 +193,7 @@ function App() {
             </label>
           </div>
 
-          <div className="control-group bottom-controls">
+          <div className="bottom-controls">
             <button onClick={clearChat} className="action-btn">
               <Trash2 size={18} /> Clear Chat
             </button>
@@ -238,6 +207,7 @@ function App() {
       {/* CHAT AREA */}
       <div className="chat-area">
         <div className="messages-container">
+          
           {messages.length === 0 && (
             <div className="empty-state">
               <div className="robot-container">
@@ -255,31 +225,19 @@ function App() {
             </div>
           )}
 
+          {/*Chat Message Component Loop */}
           {messages.map((m, i) => (
-            <div key={i} className={`message-wrapper ${m.role}`}>
-              <div className="avatar">
-                {m.role === 'bot' ? <Bot size={20} /> : <User size={20} />}
-              </div>
-              <div className="message-bubble">
-                <div className="msg-content">{m.content}</div>
-                {m.sources && m.sources.length > 0 && (
-                  <div className="sources">
-                    <div className="source-title"><FileText size={12} /> Sources:</div>
-                    <ul>{m.sources.map((s, idx) => <li key={idx}>{s}</li>)}</ul>
-                  </div>
-                )}
-              </div>
-            </div>
+            <ChatMessage 
+              key={i}
+              role={m.role}
+              content={m.content}
+              sources={m.sources}
+            />
           ))}
 
-          {loading && (
-            <div className="message-wrapper bot">
-              <div className="avatar"><Bot size={20} /></div>
-              <div className="message-bubble loading">
-                <span className="dot"></span><span className="dot"></span><span className="dot"></span>
-              </div>
-            </div>
-          )}
+          {/*Thinking Indicator Component */}
+          {loading && <ThinkingIndicator />}
+          
           <div ref={bottomRef} />
         </div>
 
@@ -298,6 +256,7 @@ function App() {
           </div>
         </div>
       </div>
+
     </div>
   );
 }
